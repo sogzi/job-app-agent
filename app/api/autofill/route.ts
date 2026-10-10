@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { autofillApplication } from "@/lib/autofill";
-import { ClaudeRefusedError } from "@/lib/claude";
+import { claudeErrorResponse } from "@/lib/api-errors";
 import { getStore } from "@/lib/store";
 
 export const maxDuration = 300;
@@ -30,21 +29,14 @@ export async function POST(request: Request) {
     const result = await autofillApplication(application, parsed.data.url);
     return NextResponse.json({ result });
   } catch (err) {
-    if (err instanceof ClaudeRefusedError) {
-      return NextResponse.json({ error: err.message }, { status: 422 });
-    }
-    if (err instanceof Anthropic.APIError) {
-      console.error("Claude API error", err.status, err.message);
-      return NextResponse.json({ error: `Claude API error: ${err.message}` }, { status: 502 });
-    }
     const message = err instanceof Error ? err.message : String(err);
-    console.error(err);
     if (/Executable doesn't exist|browserType\.launch/i.test(message)) {
+      console.error(err);
       return NextResponse.json(
         { error: "No browser found. Install Google Chrome, or run `npx playwright install chromium`, then try again." },
         { status: 500 },
       );
     }
-    return NextResponse.json({ error: `Autofill failed: ${message.split("\n")[0]}` }, { status: 500 });
+    return claudeErrorResponse(err, "Autofill failed");
   }
 }
