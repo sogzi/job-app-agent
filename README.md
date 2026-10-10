@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Job Application Agent
 
-## Getting Started
+A personal tool for job applications. Paste a job posting and Claude:
 
-First, run the development server:
+- pulls out the role, seniority, required and nice-to-have skills, and tech stack
+- scores your fit (0-100) against your profile and explains the score
+- lists where you match, with evidence from your profile
+- lists gaps, with an honest way to address each one
+- writes 5 talking points specific to that role
+
+Save an analysis to the **Applications** tab to track its status, the date you applied, a follow-up date and notes. Follow-ups that are due show up at the top.
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then edit `lib/profile.ts` with your real background. The analysis is only as specific as that profile: add role titles, numbers, tools and outcomes.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Storage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **No Supabase configured:** applications are saved to `.data/applications.json`. That's fine for local use, but it won't persist on Vercel.
+- **Supabase:** create a project, run `supabase/schema.sql` in the SQL editor, then set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The key is only used server-side.
 
-## Learn More
+## Deploy (Vercel)
 
-To learn more about Next.js, take a look at the following resources:
+Import the repo in Vercel and set `ANTHROPIC_API_KEY`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. There is no login yet, so anyone with the URL can use it and see your applications. Add auth (Supabase Auth or Vercel password protection) before sharing the link.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Path | What it does |
+| --- | --- |
+| `lib/profile.ts` | Your background, sent with every analysis |
+| `lib/types.ts` | The analysis schema (Zod) and application types |
+| `lib/analysis.ts` | Calls Claude (`claude-opus-5-5` with structured output) and returns a validated analysis |
+| `lib/store.ts` | Application storage: Supabase, or a local JSON file as a fallback |
+| `app/api/analyze-job` | `POST { jobDescription, jobUrl? }` returns `{ analysis }` |
+| `app/api/applications` | `GET` lists applications, `POST` saves one |
+| `app/api/applications/[id]` | `PATCH` updates status, dates or notes, `DELETE` removes one |
 
-## Deploy on Vercel
+Set `CLAUDE_MODEL` to use a different model. If the model declines a request, the API retries it on a fallback model automatically (`fallbacks: "default"`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Roadmap
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Fetch the posting from a URL instead of pasting it
+- Draft cover letters and application answers from the analysis
+- Company research (web search) to sharpen the talking points
+- Interview prep from the gaps and talking points
+- Auth and multiple profiles, before opening it to other users
