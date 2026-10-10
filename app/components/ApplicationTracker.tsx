@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APPLICATION_STATUSES, type Application, type ApplicationUpdate } from "@/lib/types";
+import ApplicationPrep from "./ApplicationPrep";
 import { AnalysisView, scoreColor } from "./JobAnalysis";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -9,7 +10,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 export default function ApplicationTracker() {
   const [apps, setApps] = useState<Application[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [open, setOpen] = useState<{ id: string; panel: "prep" | "analysis" } | null>(null);
+  const toggle = (id: string, panel: "prep" | "analysis") =>
+    setOpen(open?.id === id && open.panel === panel ? null : { id, panel });
 
   useEffect(() => {
     fetch("/api/applications")
@@ -112,8 +115,11 @@ export default function ApplicationTracker() {
                   className="rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </label>
-              <button onClick={() => setOpenId(openId === a.id ? null : a.id)} className="text-blue-600 hover:underline">
-                {openId === a.id ? "Hide analysis" : "View analysis"}
+              <button onClick={() => toggle(a.id, "prep")} className="font-medium text-blue-600 hover:underline">
+                {open?.id === a.id && open.panel === "prep" ? "Hide" : "Prepare application"}
+              </button>
+              <button onClick={() => toggle(a.id, "analysis")} className="text-blue-600 hover:underline">
+                {open?.id === a.id && open.panel === "analysis" ? "Hide analysis" : "View analysis"}
               </button>
               <button onClick={() => remove(a.id)} className="text-red-600 hover:underline">
                 Delete
@@ -128,9 +134,13 @@ export default function ApplicationTracker() {
               className="mt-3 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             />
 
-            {openId === a.id && (
+            {open?.id === a.id && (
               <div className="mt-3">
-                <AnalysisView analysis={a.analysis} />
+                {open.panel === "prep" ? (
+                  <ApplicationPrep application={a} onUpdate={(patch) => update(a.id, patch)} />
+                ) : (
+                  <AnalysisView analysis={a.analysis} />
+                )}
               </div>
             )}
           </li>
