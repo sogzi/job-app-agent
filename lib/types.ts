@@ -28,6 +28,27 @@ export const JobAnalysisSchema = z.object({
 
 export type JobAnalysis = z.infer<typeof JobAnalysisSchema>;
 
+export const ApplicationDraftSchema = z.object({
+  cover_letter: z.string().describe("Complete cover letter, ready to paste, with paragraphs separated by blank lines"),
+  answers: z.array(
+    z.object({
+      question: z.string().describe("The screening question exactly as given"),
+      answer: z.string(),
+    }),
+  ),
+  to_check: z
+    .array(z.string())
+    .describe("Anything the candidate must confirm or fill in before submitting, e.g. salary, start date, right to work"),
+});
+
+export type ApplicationDraft = z.infer<typeof ApplicationDraftSchema>;
+
+export interface AutofillResult {
+  url: string;
+  filled: string[];
+  needs_you: { label: string; reason: string }[];
+}
+
 export const APPLICATION_STATUSES = [
   "saved",
   "applied",
@@ -51,9 +72,10 @@ export interface Application {
   applied_on: string | null;
   follow_up_on: string | null;
   notes: string;
+  draft: ApplicationDraft | null;
 }
 
 export type NewApplication = Pick<Application, "job_url" | "job_description" | "analysis">;
 export type ApplicationUpdate = Partial<
-  Pick<Application, "status" | "applied_on" | "follow_up_on" | "notes">
+  Pick<Application, "status" | "applied_on" | "follow_up_on" | "notes" | "draft">
 >;

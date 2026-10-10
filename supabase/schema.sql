@@ -18,3 +18,6 @@ create table if not exists public.applications (
 -- The app talks to Supabase only from the server with the service role key.
 -- Row level security stays on with no policies, so the anon key cannot read this table.
 alter table public.applications enable row level security;
+
+-- Added with application drafting. Safe to re-run on an existing table.
+alter table public.applications add column if not exists draft jsonb;

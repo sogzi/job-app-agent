@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { APPLICATION_STATUSES, getStore } from "@/lib/store";
+import { ApplicationDraftSchema } from "@/lib/types";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable();
 
@@ -10,6 +11,7 @@ const Patch = z
     applied_on: isoDate,
     follow_up_on: isoDate,
     notes: z.string(),
+    draft: ApplicationDraftSchema.nullable(),
   })
   .partial();
 

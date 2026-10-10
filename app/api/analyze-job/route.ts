@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { analyzeJob, AnalysisRefusedError } from "@/lib/analysis";
+import { analyzeJob } from "@/lib/analysis";
+import { ClaudeRefusedError } from "@/lib/claude";
 
 // Analyses can take a while with thinking on.
 export const maxDuration = 120;
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     const analysis = await analyzeJob(parsed.data.jobDescription, parsed.data.jobUrl || undefined);
     return NextResponse.json({ analysis });
   } catch (err) {
-    if (err instanceof AnalysisRefusedError) {
+    if (err instanceof ClaudeRefusedError) {
       return NextResponse.json({ error: err.message }, { status: 422 });
     }
     if (err instanceof Anthropic.AuthenticationError) {

@@ -8,6 +8,7 @@ export { APPLICATION_STATUSES } from "./types";
 
 interface Store {
   list(): Promise<Application[]>;
+  get(id: string): Promise<Application | null>;
   create(input: NewApplication): Promise<Application>;
   update(id: string, patch: ApplicationUpdate): Promise<Application | null>;
   remove(id: string): Promise<boolean>;
@@ -25,6 +26,7 @@ function fromAnalysis(input: NewApplication): Omit<Application, "id" | "created_
     applied_on: null,
     follow_up_on: null,
     notes: "",
+    draft: null,
   };
 }
 
@@ -38,6 +40,12 @@ class SupabaseStore implements Store {
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data as Application[];
+  }
+
+  async get(id: string) {
+    const { data, error } = await this.db.from("applications").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return (data as Application) ?? null;
   }
 
   async create(input: NewApplication) {
@@ -77,7 +85,8 @@ class FileStore implements Store {
 
   private async read(): Promise<Application[]> {
     try {
-      return JSON.parse(await fs.readFile(this.file, "utf8"));
+      const apps: Application[] = JSON.parse(await fs.readFile(this.file, "utf8"));
+      return apps.map((a) => ({ ...a, draft: a.draft ?? null }));
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
       throw err;
@@ -91,6 +100,10 @@ class FileStore implements Store {
 
   async list() {
     return (await this.read()).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+
+  async get(id: string) {
+    return (await this.read()).find((a) => a.id === id) ?? null;
   }
 
   async create(input: NewApplication) {
